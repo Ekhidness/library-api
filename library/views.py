@@ -29,3 +29,20 @@ class BookCreateView(generics.CreateAPIView):
     queryset = Book.objects.all()
     serializer_class = BookSerializer
     permission_classes = [permissions.IsAdminUser]
+
+class BookSearchView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        query = request.query_params.get('q', None)
+        if not query:
+            books = Book.objects.select_related('author').all()
+        else:
+            books = Book.objects.select_related('author').filter(
+                Q(title__icontains=query) |
+                Q(genre__icontains=query) |
+                Q(author__first_name__icontains=query) |
+                Q(author__last_name__icontains=query)
+            )
+        serializer = BookSerializer(books, many=True)
+        return Response(serializer.data)
